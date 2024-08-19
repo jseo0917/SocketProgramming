@@ -1,9 +1,9 @@
-
 #include "graph.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
+
 void insert_link_between_two_nodes(node_t *node1, node_t *node2, char *from_if_name, char *to_if_name, unsigned int cost)
 {
   link_t *link = calloc(1, sizeof(link_t));
@@ -108,4 +108,14 @@ void dump_node(node_t *node)
 void dump_interface(interface_t *infc)
 {
   printf("Interface Name = %s\n", infc->if_name);
+
+  node_t *nbrNode = get_nbr_node(infc);
+  printf("\tNbr Node: %s Local Node : %s, cost = %d\n", infc->att_node, nbrNode->node_name, infc->link->cost);
+  printf("\tIP ADDr = %s/%d ", infc->intf_nw_props.ip_addr.ip_addr, infc->intf_nw_props.mask);
+  printf("\tMAC = %u:%u:%u:%u:%u:%u ", infc->intf_nw_props.mac_addr.mac_addr[0],
+         infc->intf_nw_props.mac_addr.mac_addr[1],
+         infc->intf_nw_props.mac_addr.mac_addr[2],
+         infc->intf_nw_props.mac_addr.mac_addr[3],
+         infc->intf_nw_props.mac_addr.mac_addr[4],
+         infc->intf_nw_props.mac_addr.mac_addr[5]);
 }
