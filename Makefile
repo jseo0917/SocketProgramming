@@ -6,7 +6,8 @@ OBJS=glthread/glthread.o \
 							graph.o 	 \
 							topologies.o \
 							net.o		 \
-							utils.o
+							utils.o		 \
+							communication.o
 
 test.exe:testapp.o ${OBJS}
 		${CC} ${CFLAGS} testapp.o ${OBJS} -o test.exe
@@ -28,6 +29,9 @@ net.o:net.c
 
 utils.o:utils.c	
 		${CC} ${CFLAGS} -c -I . utils.c -o utils.o
+
+communication.o:communication.c
+		${CC} ${CFLAGS} -c -I . communication.c -o communication.o
 clean:
 	rm *.o
 	rm glthread/glthread.o

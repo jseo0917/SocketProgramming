@@ -1,5 +1,7 @@
 #include "graph.h"
 #include "utils.h"
+#include <unistd.h>
+#include "communication.h"
 /*
  * PROJECT DESCRIPTION
  * This project demonstrates the
@@ -31,9 +33,20 @@ int main(int arg, char **argv)
 {
   graph_t *topo = build_first_topo();
 
-  dump_graph(topo);
+  // dump_graph(topo);
 
-  utils_test();
+  // utils_test();
 
+  sleep(3);
+
+  node_t *snode = get_node_by_node_name(topo, "R0_re");
+
+  interface_t *oif = get_node_if_by_name(snode, "eth0/0");
+
+  char msg[] = "hello, how are you\0";
+
+  send_pkt_out(msg, strlen(msg), oif);
+
+  sleep(4);
   return 0;
 }

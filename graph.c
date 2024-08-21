@@ -1,8 +1,8 @@
 #include "graph.h"
+#include "communication.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <string.h>
 
 void insert_link_between_two_nodes(node_t *node1, node_t *node2, char *from_if_name, char *to_if_name, unsigned int cost)
 {
@@ -25,13 +25,10 @@ void insert_link_between_two_nodes(node_t *node1, node_t *node2, char *from_if_n
 
   empty_intf_slot = get_node_intf_available_slot(node1);
 
-  printf("Available slot for node %s: %d\n", node1->node_name, empty_intf_slot);
-
   node1->intf[empty_intf_slot] = &link->intf1;
 
   empty_intf_slot = get_node_intf_available_slot(node2);
 
-  printf("Available slot for node %s: %d\n", node2->node_name, empty_intf_slot);
   node2->intf[empty_intf_slot] = &link->intf2;
 
   init_intf_nw_prop(&link->intf1.intf_nw_props);
@@ -59,6 +56,8 @@ node_t *create_graph_node(graph_t *graph, char *node_name)
   node_t *node = calloc(1, sizeof(node_t));
   strncpy(node->node_name, node_name, NODE_NAME_SIZE);
   node->node_name[NODE_NAME_SIZE - 1] = '\0';
+
+  init_udp_socket(node);
 
   init_node_nw_prop(&node->node_nw_prop);
   init_glthread(&node->graph_glue);
