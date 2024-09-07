@@ -5,6 +5,11 @@
     "stdio.h": "c",
     "graph.h": "c",
     "communication.h": "c",
-    "stdlib.h": "c"
+    "stdlib.h": "c",
+    "stddef.h": "c",
+    "glthread.h": "c",
+    "string.h": "c",
+    "in.h": "c",
+    "libcli.h": "c"
   }
 }

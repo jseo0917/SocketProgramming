@@ -31,6 +31,7 @@ static int _send_pkt_out(int sock_fd, char *pkt_data, unsigned int pkt_size, uns
 
     rc = sendto(sock_fd, pkt_data, pkt_size, 0, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr));
 
+    printf("[_send_pkt_out] Successfully sent the pakcage, %d", rc);
     return rc;
 }
 
@@ -82,7 +83,7 @@ static unsigned int get_next_udp_port_number()
 void init_udp_socket(node_t *node)
 {
     node->udp_port_number = get_next_udp_port_number();
-
+    printf("%d\n", node->udp_port_number);
     // Opening socket
     int udp_sock_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -101,10 +102,17 @@ void init_udp_socket(node_t *node)
     node->udp_sock_fd = udp_sock_fd;
 }
 
-int pkt_receive(node_t *node, interface_t *inteface, char *pkt, unsigned int pkt_size)
+extern void layer2_frame_recv(node_t *node, interface_t *interface, char *pkt, unsigned int pkt_size);
+
+int pkt_receive(node_t *node, interface_t *interface, char *pkt, unsigned int pkt_size)
 {
     printf("PKC_RECEIVE\n");
-    printf("msg recvd = %s, on node = %s, IIF = %s\n", pkt, node->node_name, inteface->if_name);
+    printf("msg recvd = %s, on node = %s, IIF = %s\n", pkt, node->node_name, interface->if_name);
+
+    pkt = pkt_buffer_shift_right(pkt, pkt_size, MAX_PACKET_BUFFER_SIZE - IF_NAME_SIZE);
+
+    layer2_frame_recv(node, interface, pkt, pkt_size);
+
     return 0;
 }
 
@@ -122,26 +130,39 @@ static void _pck_receive(node_t *receving_node, char *pkt_with_aux_data, unsigne
     printf("[_pck_receive] Successfully found the interface, %s\n", recv_intf->if_name);
     pkt_receive(receving_node, recv_intf, pkt_with_aux_data + IF_NAME_SIZE, pkt_size - IF_NAME_SIZE);
 }
+int send_pkt_flood(node_t *node, interface_t *exempted_intf, char *pkt, unsigned int pkt_size)
+{
+
+    for (int i = 0; i < MAX_INTF_PER_NODE; i++)
+    {
+        interface_t *inf = node->intf[i];
+
+        if (!inf)
+            return 0;
+
+        if (inf == exempted_intf)
+            continue;
+
+        send_pkt_out(pkt, pkt_size, inf);
+    }
+
+    return 1;
+}
 
 static void *_network_start_pkt_receiver_thread(void *arg)
 {
     printf("[_network_start_pkt_receiver_thread] Started receiving package\n");
+
     node_t *node;
     glthread_t *crr;
-
-    fd_set active_sock_fd_set, backup_sock_fd_set;
-
-    int sock_max_fd = 0;
-    int bytes_recvd = 0;
-
-    graph_t *topo = (void *)arg;
-
+    graph_t *topo = (graph_t *)arg;
     int addr_len = sizeof(struct sockaddr);
-
-    FD_ZERO(&active_sock_fd_set);
-    FD_ZERO(&backup_sock_fd_set);
-
+    int max_sock_fd, bytes_recv = 0;
     struct sockaddr_in sender_addr;
+
+    fd_set active_socket_fd, backup_socket_fd;
+    FD_ZERO(&active_socket_fd);
+    FD_ZERO(&backup_socket_fd);
 
     crr = topo->node_list.right;
 
@@ -151,48 +172,34 @@ static void *_network_start_pkt_receiver_thread(void *arg)
         node = (node_t *)(base - (sizeof(node_t) - sizeof(glthread_t)));
 
         if (!node->udp_sock_fd)
-        {
             continue;
-        }
-        if (node->udp_sock_fd > sock_max_fd)
-            sock_max_fd = node->udp_sock_fd;
-
-        FD_SET(node->udp_sock_fd, &backup_sock_fd_set);
+        if (node->udp_sock_fd > max_sock_fd)
+            max_sock_fd = node->udp_sock_fd;
+        FD_SET(node->udp_sock_fd, &backup_socket_fd);
 
         crr = crr->right;
     }
 
     while (1)
     {
-
-        memcpy(&active_sock_fd_set, &backup_sock_fd_set, sizeof(fd_set));
-        select(sock_max_fd + 1, &active_sock_fd_set, NULL, NULL, NULL);
+        memcpy(&active_socket_fd, &backup_socket_fd, sizeof(fd_set));
+        select(max_sock_fd, &active_socket_fd, NULL, NULL, NULL);
 
         crr = topo->node_list.right;
 
-        if (crr == NULL)
-        {
-            printf("crr null\n");
-        }
         while (crr)
         {
-            printf("inside the while\n");
             char *base = (char *)crr;
-
             node = (node_t *)(base - (sizeof(node_t) - sizeof(glthread_t)));
 
-            if (FD_ISSET(node->udp_sock_fd, &active_sock_fd_set))
-
+            if (FD_ISSET(node->udp_sock_fd, &active_socket_fd))
             {
                 memset(recv_buffer, 0, MAX_PACKET_BUFFER_SIZE);
-                bytes_recvd = recvfrom(node->udp_sock_fd, (char *)recv_buffer,
-                                       MAX_PACKET_BUFFER_SIZE, 0, (struct sockaddr *)&sender_addr, &addr_len);
-                _pck_receive(node, recv_buffer, bytes_recvd);
+                bytes_recv = recvfrom(node->udp_sock_fd, (char *)recv_buffer, MAX_PACKET_BUFFER_SIZE,
+                                      0, (struct sockaddr *)&sender_addr, &addr_len);
+                _pck_receive(node, recv_buffer, bytes_recv);
             }
-            else
-            {
-                printf("Failed FD_ISSET\n");
-            }
+
             crr = crr->right;
         }
     }
@@ -200,10 +207,18 @@ static void *_network_start_pkt_receiver_thread(void *arg)
 
 void network_start_pkt_receiver_thread(graph_t *topo)
 {
+    int rc, ds;
     pthread_attr_t attr;
     pthread_t recv_pkt_thread;
 
     pthread_attr_init(&attr);
+
+    if (rc == -1)
+    {
+        perror("Error in ptrhead_attr_init\n");
+        exit(1);
+    }
+
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     pthread_create(&recv_pkt_thread, &attr, _network_start_pkt_receiver_thread, (void *)topo);

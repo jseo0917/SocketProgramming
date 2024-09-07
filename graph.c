@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+extern void init_udp_socket(node_t *node);
 
 void insert_link_between_two_nodes(node_t *node1, node_t *node2, char *from_if_name, char *to_if_name, unsigned int cost)
 {
@@ -61,6 +62,7 @@ node_t *create_graph_node(graph_t *graph, char *node_name)
 
   init_node_nw_prop(&node->node_nw_prop);
   init_glthread(&node->graph_glue);
+
   glthread_add_right(&graph->node_list, &node->graph_glue);
 
   printf("[create_graph_node] successfully generated the node,\n");
@@ -85,6 +87,11 @@ void dump_graph(graph_t *topo)
 
     node_t *node = (node_t *)(base - (sizeof(node_t) - sizeof(glthread_t)));
 
+    if (node == NULL)
+    {
+      return;
+    }
+    
     dump_node(node);
 
     base_glthread = base_glthread->right;
@@ -93,14 +100,15 @@ void dump_graph(graph_t *topo)
 
 void dump_node(node_t *node)
 {
-  printf("Node Name = %s\n", node->node_name);
-  printf("\tlo addr : %s\n", node->node_nw_prop.lb_addr.ip_addr);
   for (int i = 0; i < MAX_INTF_PER_NODE; i++)
   {
     if (!node->intf[i])
       break;
-    else
+    else{
+      printf("\nNode Name = %s, udp_port_no = %d \n", node->node_name, node->udp_port_number);
+      printf("\t lo addr: %s \n", node->node_nw_prop.lb_addr.ip_addr);
       dump_interface(node->intf[i]);
+    }
   }
 }
 
@@ -109,9 +117,9 @@ void dump_interface(interface_t *infc)
   printf("Interface Name = %s\n", infc->if_name);
 
   node_t *nbrNode = get_nbr_node(infc);
-  printf("\tNbr Node: %s Local Node : %s, cost = %d\n", infc->att_node, nbrNode->node_name, infc->link->cost);
+  printf("\tNbr Node: %s Local Node : %s, cost = %d\n", nbrNode->node_name, infc->att_node, infc->link->cost);
   printf("\tIP ADDr = %s/%d ", infc->intf_nw_props.ip_addr.ip_addr, infc->intf_nw_props.mask);
-  printf("\tMAC = %u:%u:%u:%u:%u:%u ", infc->intf_nw_props.mac_addr.mac_addr[0],
+  printf("\tMAC = %u:%u:%u:%u:%u:%u \n", infc->intf_nw_props.mac_addr.mac_addr[0],
          infc->intf_nw_props.mac_addr.mac_addr[1],
          infc->intf_nw_props.mac_addr.mac_addr[2],
          infc->intf_nw_props.mac_addr.mac_addr[3],

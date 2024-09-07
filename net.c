@@ -1,7 +1,9 @@
 #include "graph.h"
+#include <stddef.h>
+#include <string.h>
+#include "./Layer2/layer2.h"
 #include <memory.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -96,4 +98,10 @@ void convert_ip_from_int_to_str(unsigned int ip_addr, char *output_buffer)
   ip_addr = htonl(ip_addr);
   inet_ntop(AF_INET, &ip_addr, output_buffer, 16);
   return;
+}
+
+char* pkt_buffer_shift_right(char* pkt, unsigned int pkt_size, unsigned int total_buffer_size) {
+  memcpy(pkt + (total_buffer_size - pkt_size), pkt, pkt_size);
+  memset(pkt, 0, pkt_size);
+  return pkt + (total_buffer_size - pkt_size);
 }

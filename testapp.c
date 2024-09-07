@@ -2,12 +2,14 @@
 #include "utils.h"
 #include <unistd.h>
 #include "communication.h"
+#include "CommandParser/libcli.h"
 /*
  * PROJECT DESCRIPTION
  * This project demonstrates the
  */
 
 extern graph_t *build_first_topo();
+extern graph_t *build_linear_topo();
 
 void utils_test()
 {
@@ -29,24 +31,40 @@ void utils_test()
   }
 }
 
+extern graph_t *build_first_topo();
+extern graph_t *build_linear_topo();
+extern void nw_init_cli();
+graph_t *topo = NULL;
+
 int main(int arg, char **argv)
 {
-  graph_t *topo = build_first_topo();
+
+  nw_init_cli();
+  topo = build_linear_topo();
+  start_shell();
+
+  return 0;
+  // show_help_handler(0, 0, MODE_UNKNOWN);
+  // topo = build_first_topo();
+  // start_shell();
+
+  // graph_t *topo = build_first_topo();
 
   // dump_graph(topo);
 
-  // utils_test();
+  // // utils_test();
 
-  sleep(3);
+  // sleep(3);
 
-  node_t *snode = get_node_by_node_name(topo, "R0_re");
+  // node_t *snode = get_node_by_node_name(topo, "H3");
 
-  interface_t *oif = get_node_if_by_name(snode, "eth0/0");
+  // interface_t *oif = get_node_if_by_name(snode, "eth0/4");
 
-  char msg[] = "hello, how are you\0";
+  // char msg[] = "hello, how are you\0";
 
-  send_pkt_out(msg, strlen(msg), oif);
+  // send_pkt_out(msg, strlen(msg), oif);
+  // send_pkt_flood(snode, NULL, msg, strlen(msg));
 
-  sleep(4);
+  sleep(5);
   return 0;
 }
