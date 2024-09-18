@@ -10,7 +10,7 @@
 
 extern graph_t *build_first_topo();
 extern graph_t *build_linear_topo();
-
+extern void send_arp_broadcast_request(node_t *node, interface_t *oif, char *ip_addr);
 void utils_test()
 {
   char str_prefix[16];
@@ -39,30 +39,32 @@ graph_t *topo = NULL;
 int main(int arg, char **argv)
 {
 
-  nw_init_cli();
-  topo = build_linear_topo();
-  start_shell();
+  // nw_init_cli();
+  // topo = build_linear_topo();
+  // start_shell();
 
-  return 0;
+  // return 0;
   // show_help_handler(0, 0, MODE_UNKNOWN);
   // topo = build_first_topo();
   // start_shell();
 
-  // graph_t *topo = build_first_topo();
+  topo = build_first_topo();
 
-  // dump_graph(topo);
+  dump_graph(topo);
 
   // // utils_test();
 
   // sleep(3);
 
-  // node_t *snode = get_node_by_node_name(topo, "H3");
+  node_t *snode = get_node_by_node_name(topo, "R0_re");
 
-  // interface_t *oif = get_node_if_by_name(snode, "eth0/4");
+  interface_t *oif = get_node_if_by_name(snode, "eth0/0");
 
-  // char msg[] = "hello, how are you\0";
+  char msg[] = "hello, how are you\0";
 
+  send_arp_broadcast_request(snode, oif, "20.1.1.2");
   // send_pkt_out(msg, strlen(msg), oif);
+
   // send_pkt_flood(snode, NULL, msg, strlen(msg));
 
   sleep(5);

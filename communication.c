@@ -110,7 +110,7 @@ int pkt_receive(node_t *node, interface_t *interface, char *pkt, unsigned int pk
     printf("msg recvd = %s, on node = %s, IIF = %s\n", pkt, node->node_name, interface->if_name);
 
     pkt = pkt_buffer_shift_right(pkt, pkt_size, MAX_PACKET_BUFFER_SIZE - IF_NAME_SIZE);
-
+    
     layer2_frame_recv(node, interface, pkt, pkt_size);
 
     return 0;

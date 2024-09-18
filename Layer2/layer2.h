@@ -28,7 +28,7 @@ typedef struct ethernet_hdr_
 {
     mac_address_t dst_mac_addr;
     mac_address_t src_mac_addr;
-    short type;
+    unsigned short type;
     char payload[248];
     unsigned int FCS;
 } ethernet_hdr_t;
@@ -73,6 +73,7 @@ static inline ethernet_hdr_t *ALLOC_ETH_HDR_WITH_PAYLOAD(char *pkt, unsigned int
     return eth_header;
 }
 
+// Packet processing criteria
 static inline bool l2_frame_recv_qualify_on_interface(interface_t *interface, ethernet_hdr_t *ethernet_hdr)
 {
     // Check whether in L3 mode
